@@ -52,33 +52,37 @@ returns id
 with execute as caller
 as
 begin
-	declare @idAuthor int = (select [id] from author where [surname] = @surname and [firstname] = @firstname and [patronymic] = @patronymic)
-	Select @idAuthor
-	From author Join author_article On author.id =author_article.idAuthor Join article On author_article.idArticle = article.id;
-	Where Max(Count(article.name);
-	return (@idAuthor)
+	declare @AuthorId int = (
+	Select top(1) author.id
+	From author Join author_article On author.id =author_article.idAuthor Join article On author_article.idArticle = article.id
+	Group By  author.id
+	Order By Count(article.id) Desc)
+	return (@AuthorId)
 end
 
-create function [dbo].[article] (@id int, @name nvarchar(50))
-returns id
+create function [dbo].[article] ()
+returns int
 with execute as caller
 as
 begin
-	Select article.name
-	From author Join author_article On author.id =author_article.idAuthor Join article On author_article.idArticle = article.id Join release On article.idRelease
-	= release.id Join journal On release.idJournal = journal.id
-	Where author.surname Like 'Определенный автор' And author.firstname Like 'Определенный автор' And author.patronymic Like 'Определенный автор' And journal.name
-	Like 'Определенный журнал';
-	return (Count(article.name)
+		declare @ArticleName int = (select Count(article.name) As "Количество статей", journal.name, author.firstname,author.patronymic, author.surname
+	from author Join author_article On author.id =author_article.idAuthor Join article On author_article.idArticle 
+		= article.id Join release On article.idRelease
+		= release.id Join journal On release.idJournal = journal.id
+	Group By author.firstname, author.patronymic, author.surname, journal.name
+	Order By COUNT(article.name) Desc)
+	return(@ArticleName)
 end
 
-create function [dbo].[journal] (@name nvarchar(50))
+create function [dbo].[journal] ()
 returns nvarchar(50)
 with execute as caller
 as
 begin
-	Select journal,name
-	From journal Join release On journal.id = release.idJournal Join article On article.idRelease = release.id
-	Where Max(Count(article.name))
-	return (name)
+	declare @JournalName nvarchar(50) = (
+	select top(1) journal.name, article.name, count(article.name)
+	from journal Join release On journal.id = release.idJournal Join article On article.idRelease = release.id
+	group by journal.name, article.name
+	order by count(article.name) desc)
+	return (@JournalName)
 end
